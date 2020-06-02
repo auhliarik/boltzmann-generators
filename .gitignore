@@ -1,6 +1,9 @@
-./archive/
-./deep_boltzmann/
-./notebooks/
-./original_code/
-./others/
-./__pycache__/
+# Ignoring some directories
+archive
+deep_boltzmann
+notebooks
+original_code
+others
+.ipynb_checkpoints
+__pycache__
+
