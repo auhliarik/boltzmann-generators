@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from layers_basic import IndexLayer
-from utils import connect
+from util import connect
 
 def split_merge_indices(ndim, nchannels=2, channels=None):
     """
