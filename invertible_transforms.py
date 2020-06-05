@@ -263,13 +263,13 @@ def invnet(dim, layer_types, energy_model=None, channels=None,
             if dim_R == 0:
                 raise RuntimeError('Not split. Cannot invoke Real NVP layer.')
             S1 = nonlinear_transform(dim_R, nlayers=nl_layers_scale, nhidden=nl_hidden_scale,
-                                     activation=nl_activation_scale, init_outputs=1.5, **layer_args)
+                                     activation=nl_activation_scale, init_outputs=0, **layer_args)
             T1 = nonlinear_transform(dim_R, nlayers=nl_layers, nhidden=nl_hidden,
-                                     activation=nl_activation, init_outputs=1.5, **layer_args)
+                                     activation=nl_activation, **layer_args)
             S2 = nonlinear_transform(dim_L, nlayers=nl_layers_scale, nhidden=nl_hidden_scale,
-                                     activation=nl_activation_scale, init_outputs=1.5, **layer_args)
+                                     activation=nl_activation_scale, init_outputs=0, **layer_args)
             T2 = nonlinear_transform(dim_L, nlayers=nl_layers, nhidden=nl_hidden,
-                                     activation=nl_activation, init_outputs=1.5, **layer_args)
+                                     activation=nl_activation, **layer_args)
             layers.append(RealNVP([S1, T1, S2, T2]))
         elif ltype == 'r':
             if dim_R == 0:
