@@ -24,7 +24,7 @@ class Loss_ML_normal(tf.keras.losses.Loss):
         # Loss_ML_normal(bg, 0) must be called on the boltzmann generator.
         # As we consider this error prone, the following info printing is used:
         w_add = w - self.__class__.w_last
-        print("ML loss wight info:", "last:" , self.__class__.w_last,
+        print("ML loss weight info:", "last:" , self.__class__.w_last,
               "added:", w_add, "new:", w)
         self.__class__.w_last = w
 

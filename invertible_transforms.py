@@ -19,67 +19,31 @@ class InvNet(object):
             Type of prior - only 'normal' implemented so far
 
         """
-
         self.dim = dim
         self.layers = layers
         self.prior = prior
         self.connect_layers()
 
-        # compute total Jacobian for x->z transformation
-        log_det_xzs = []
-        for l in layers:
-            if hasattr(l, 'log_det_xz'):
-                log_det_xzs.append(l.log_det_xz)
-        if len(log_det_xzs) == 0:
-            self.TxzJ = None
-        else:
-            if len(log_det_xzs) == 1:
-                self.log_det_xz = log_det_xzs[0]
-            else:
-                self.log_det_xz = tf.keras.layers.Add()(log_det_xzs)
-            self.TxzJ = tf.keras.Model(inputs=self.input_x, outputs=[self.output_z, self.log_det_xz])
-
-        # compute total Jacobian for z->x transformation
-        log_det_zxs = []
-        for l in layers:
-            if hasattr(l, 'log_det_zx'):
-                log_det_zxs.append(l.log_det_zx)
-        if len(log_det_zxs) == 0:
-            self.TzxJ = None
-        else:
-            if len(log_det_zxs) == 1:
-                self.log_det_zx = log_det_zxs[0]
-            else:
-                self.log_det_zx = tf.keras.layers.Add()(log_det_zxs)
-            self.TzxJ = tf.keras.Model(inputs=self.input_z, outputs=[self.output_x, self.log_det_zx])
-
     def connect_xz(self, x):
         z = None
         for i in range(len(self.layers)):
             z = self.layers[i].connect_xz(x)  # connect
-            #print(self.layers[i])
-            #print('Inputs\n', x)
-            #print()
-            #print('Outputs\n', z)
-            #print('------------')
-            #print()
-            x = z  # rename output
+            x = z  # rename output to next input
         return z
 
     def connect_zx(self, z):
         x = None
         for i in range(len(self.layers)-1, -1, -1):
             x = self.layers[i].connect_zx(z)  # connect
-            #print(self.layers[i])
-            #print('Inputs\n', z)
-            #print()
-            #print('Outputs\n', x)
-            #print('------------')
-            #print()
             z = x  # rename output to next input
         return x
 
     def connect_layers(self):
+        """ Connects layers of the BG both in X->Z and Z->X direction
+        and creates 4 models: Txz, Tzx, TxzJ, TzxJ
+        Here 'J' means that the model has a second output - determinant of
+        Jacobian matrix for given input. """
+
         # X -> Z
         self.input_x = tf.keras.layers.Input(shape=(self.dim,))
         self.output_z = self.connect_xz(self.input_x)
@@ -92,43 +56,39 @@ class InvNet(object):
         self.Txz = tf.keras.Model(inputs=self.input_x, outputs=self.output_z)
         self.Tzx = tf.keras.Model(inputs=self.input_z, outputs=self.output_x)
 
-    @property
-    def log_det_Jxz(self):
-        """ Log of |det(dz/dx)| for the current batch. Format is batchsize x 1 or a number """
-        #return self.log_det_xz.output
-        log_det_Jxzs = []
+        # compute total Jacobian for x->z transformation
+        log_det_xzs = []
         for l in self.layers:
-            if hasattr(l, 'log_det_Jxz'):
-                log_det_Jxzs.append(l.log_det_Jxz)
-        if len(log_det_Jxzs) == 0:
-            return tf.ones((self.output_z.shape[0],))
-        if len(log_det_Jxzs) == 1:
-            return log_det_Jxzs[0]
-        return tf.reduce_sum(log_det_Jxzs, axis=0, keepdims=False)
+            if hasattr(l, 'log_det_xz'):
+                log_det_xzs.append(l.log_det_xz)
+        if len(log_det_xzs) == 0:
+            self.TxzJ = None
+        else:
+            if len(log_det_xzs) == 1:
+                self.log_det_xz = log_det_xzs[0]
+            else:
+                self.log_det_xz = tf.keras.layers.Add()(log_det_xzs)
+            self.TxzJ = tf.keras.Model(inputs=self.input_x,
+                                       outputs=[self.output_z, self.log_det_xz])
 
-    @property
-    def log_det_Jzx(self):
-        """ Log of |det(dx/dz)| for the current batch. Format is batchsize x 1 or a number """
-        #return self.log_det_zx.output
-        log_det_Jzxs = []
+        # compute total Jacobian for z->x transformation
+        log_det_zxs = []
         for l in self.layers:
-            if hasattr(l, 'log_det_Jzx'):
-                log_det_Jzxs.append(l.log_det_Jzx)
-        if len(log_det_Jzxs) == 0:
-            return tf.ones((self.output_x.shape[0],))
-        if len(log_det_Jzxs) == 1:
-            return log_det_Jzxs[0]
-        return tf.reduce_sum(log_det_Jzxs, axis=0, keepdims=False)
+            if hasattr(l, 'log_det_zx'):
+                log_det_zxs.append(l.log_det_zx)
+        if len(log_det_zxs) == 0:
+            self.TzxJ = None
+        else:
+            if len(log_det_zxs) == 1:
+                self.log_det_zx = log_det_zxs[0]
+            else:
+                self.log_det_zx = tf.keras.layers.Add()(log_det_zxs)
+            self.TzxJ = tf.keras.Model(inputs=self.input_z,
+                                       outputs=[self.output_x, self.log_det_zx])
 
-    def log_likelihood_z_normal(self, std=1.0):
-        """ Returns the log likelihood (except for a constant) of z|x
-        assuming a Normal distribution in z
-        """
-        #return self.log_det_Jxz - self.dim * tf.log(std) - (0.5 / (std**2)) * tf.reduce_sum(self.output_z**2, axis=1)
-        return self.log_det_Jxz - (0.5 / (std**2)) * tf.reduce_sum(self.output_z**2, axis=1)
-
-    def train_ML(self, x, w=1, xval=None, optimizer=None, lr=0.001, clipnorm=None, epochs=2000, batch_size=1024,
-                 std=1.0, reg_Jxz=0.0, verbose=1, return_test_energies=False):
+    def train_ML(self, x, w=1, xval=None, from_HDF5=False, optimizer=None,
+                 lr=0.001, clipnorm=None, epochs=2000, batch_size=1024, std=1.0,
+                 verbose=1, return_test_energies=False):
 
         if optimizer is None:
             if clipnorm is None:
@@ -138,8 +98,7 @@ class InvNet(object):
                                                      clipnorm=clipnorm)
 
         if self.prior == 'normal':
-            if reg_Jxz == 0:
-                self.Txz.compile(optimizer, loss=losses.Loss_ML_normal(self, w)) #loss_weights=[w])
+            self.Txz.compile(optimizer, loss=losses.Loss_ML_normal(self, w)) #loss_weights=[w])
         else:
             raise NotImplementedError('ML for prior ' + self.prior + ' is not implemented.')
 
@@ -152,49 +111,51 @@ class InvNet(object):
         #                    batch_size=batch_size, epochs=epochs, verbose=verbose, shuffle=True)
         # data preprocessing
 
-
         N = x.shape[0]
-        I = np.arange(N)
+        indices = np.arange(N)
         loss_train = []
         energies_x_val = []
         energies_z_val = []
         loss_val = []
-        y = np.zeros((batch_size, self.dim))
+        y_pred_dummy = np.zeros((batch_size, self.dim))
+
         for e in range(epochs):
-            # sample batch
-            x_batch = tf.gather(x, np.random.choice(I, size=batch_size, replace=True))
-            # x_batch = np.random.choice(x, size=batch_size, replace=True)
-            l = self.Txz.train_on_batch(x=x_batch, y=y)
+            # Sample batch
+            batch_indices = np.random.choice(indices, size=batch_size, replace=True)
+            x_batch = np.take(x, batch_indices, axis=0)
+
+            # Train
+            l = self.Txz.train_on_batch(x=x_batch, y=y_pred_dummy)
             loss_train.append(l)
 
-            # validate
-            if xval is not None:
-                # xval_batch = xval[np.random.choice(I, size=batch_size, replace=True)]
-                xval_batch = tf.gather(xval, np.random.choice(I, size=batch_size, replace=True))
-                l = self.Txz.test_on_batch(x=xval_batch, y=y)
-                loss_val.append(l)
-                if return_test_energies:
-                    z = self.sample_z(nsample=batch_size)
-                    xout = self.transform_zx(z)
-                    energies_x_val.append(self.energy_model.energy(xout))
-                    zout = self.transform_xz(xval_batch)
-                    energies_z_val.append(self.energy_z(zout))
+            # # Validate
+            # if xval is not None:
+            #     # xval_batch = xval[np.random.choice(I, size=batch_size, replace=True)]
+            #     xval_batch = tf.gather(xval, np.random.choice(I, size=batch_size, replace=True))
+            #     l = self.Txz.test_on_batch(x=xval_batch, y=y)
+            #     loss_val.append(l)
+            #     if return_test_energies:
+            #         z = self.sample_z(nsample=batch_size)
+            #         xout = self.transform_zx(z)
+            #         energies_x_val.append(self.energy_model.energy(xout))
+            #         zout = self.transform_xz(xval_batch)
+            #         energies_z_val.append(self.energy_z(zout))
 
             # print
             if verbose > 0:
-                str_ = 'Epoch ' + str(e) + '/' + str(epochs) + ' '
-                str_ += self.Txz.metrics_names[0] + ' '
-                str_ += '{:.4f}'.format(loss_train[-1]) + ' '
+                info = 'Epoch ' + str(e) + '/' + str(epochs) + ' '
+                info += self.Txz.metrics_names[0] + ' '
+                info += '{:.4f}'.format(loss_train[-1]) + ' '
                 if xval is not None:
-                    str_ += '{:.4f}'.format(loss_val[-1]) + ' '
+                    info += '{:.4f}'.format(loss_val[-1]) + ' '
 #                for i in range(len(self.Txz.metrics_names)):
 
                     #str_ += self.Txz.metrics_names[i] + ' '
                     #str_ += '{:.4f}'.format(loss_train[-1][i]) + ' '
                     #if xval is not None:
                     #    str_ += '{:.4f}'.format(loss_val[-1][i]) + ' '
-                print(str_)
-                sys.stdout.flush()
+                print(info)
+                # sys.stdout.flush()
 
         if return_test_energies:
             return loss_train, loss_val, energies_x_val, energies_z_val
