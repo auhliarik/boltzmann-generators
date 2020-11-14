@@ -3,12 +3,13 @@ import numpy as np
 import numbers
 import copy
 
-def nonlinear_transform(output_size, nlayers=3, nhidden=100, activation='relu',
+
+def nonlinear_transform(output_size, n_layers=3, n_hidden=100, activation='relu',
                         init_outputs=None, **args):
     """ Generic dense trainable neural nonlinear transform
 
     Returns a list of the layers of a dense feedforward network with
-    nlayers-1 hidden layers with nhidden neurons and the specified activation
+    n_layers-1 hidden layers with n_hidden neurons and the specified activation
     functions. The last layer is always linear in order to access the full real
     number range and has output_size output neurons.
 
@@ -16,12 +17,12 @@ def nonlinear_transform(output_size, nlayers=3, nhidden=100, activation='relu',
     ----------
     output_size : int
         number of output neurons
-    nlayers : int
-        number of layers, including the linear output layer. nlayers=3 means two
+    n_layers : int
+        number of layers, including the linear output layer. n_layers=3 means two
         hidden layers with nonlinear activation and one linear output layer.
-    nhidden : int
+    n_hidden : int
         number of neurons in each hidden layer, either a number or an array of
-        length nlayers-1 to specify the width of each hidden layer
+        length n_layers-1 to specify the width of each hidden layer
     activation : str
         nonlinear activation function in hidden layers
     init_outputs : None or float or array
@@ -31,14 +32,14 @@ def nonlinear_transform(output_size, nlayers=3, nhidden=100, activation='relu',
         Additional keyword arguments passed to the layer
 
     """
-    if isinstance(nhidden, numbers.Integral):
-        nhidden = nhidden * np.ones(nlayers-1, dtype=int)
+    if isinstance(n_hidden, numbers.Integral):
+        n_hidden = n_hidden * np.ones(n_layers-1, dtype=int)
     else:
-        nhidden = np.array(nhidden)
-        if nhidden.size != nlayers-1:
-            raise ValueError('Illegal size of nhidden. Expecting 1d array with nlayers-1 elements')
+        n_hidden = np.array(n_hidden)
+        if n_hidden.size != n_layers-1:
+            raise ValueError('Illegal size of n_hidden. Expecting 1d array with n_layers-1 elements')
 
-    NN_layers = [tf.keras.layers.Dense(nh, activation=activation, **args) for nh in nhidden]
+    neural_network_layers = [tf.keras.layers.Dense(nh, activation=activation, **args) for nh in n_hidden]
 
     if init_outputs is None:
         final_layer = tf.keras.layers.Dense(output_size, activation='linear', **args)
@@ -47,9 +48,10 @@ def nonlinear_transform(output_size, nlayers=3, nhidden=100, activation='relu',
         argscopy['kernel_initializer'] = tf.keras.initializers.Zeros()
         argscopy['bias_initializer'] = tf.keras.initializers.Constant(init_outputs)
         final_layer = tf.keras.layers.Dense(output_size, activation='linear', **argscopy)
-    NN_layers += [final_layer]
+    neural_network_layers += [final_layer]
 
-    return NN_layers
+    return neural_network_layers
+
 
 class IndexLayer(tf.keras.layers.Layer):
     def __init__(self, indices, **kwargs):
