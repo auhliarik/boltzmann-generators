@@ -1,10 +1,9 @@
 # Ignoring some directories
-archive
-deep_boltzmann
-notebooks
-original_code
-others
-model
+/archive/
+/deep_boltzmann/
+/original_code/
+/others/
+/model/
 .ipynb_checkpoints
 __pycache__
 
