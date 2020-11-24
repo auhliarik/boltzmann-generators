@@ -1,85 +1,112 @@
 import tensorflow as tf
+import numpy as np
+import util
 
 
-class LossMLNormal(tf.keras.losses.Loss):
-    """ The maximum-likelihood (ML) loss """
-    # Last weight of ML loss
-    w_last = 0
+class LossMLNormal:
+    """ The maximum-likelihood (ML) loss
+    Defined as: U(Fxz(x)) - log(det(Jxz))  where U(z) = (0.5 / prior_sigma**2) * z**2 """
 
-    def __init__(self, bg, tf_model, w, std=1):
-        """ Sets log(det J) part of the ML loss to be used with weight 'w' in
-        tensorflow model 'tf_model' of the BG 'bg' with
-        normal prior of standard deviation 'std'.
-
-        IMPORTANT NOTE: LossMLNormal(bg, tf_model, 0) has to be called if ML loss should
-        no longer be used int tf_model and it has been used before. Otherwise the log(det J)
-        part of the ML loss would be still applied.
+    def __init__(self, weight, prior_sigma=1):
         """
-        self.std = std
-        self.bg = bg
-        self.model = tf_model
-
-        # Currently the ML loss is implemented in that way, that the log(det J)
-        # part of the loss is added using the tf.keras.Model.add_loss method and
-        # the (0.5/std**2)*(F**2) part is added using call method.
-        # The former part of the loss can not be removed later (as far as we
-        # know), it can only be made zero by adding exactly the same loss but
-        # with the opposite sign. Therefore if user wants to stop using ML loss,
-        # Loss_ML_normal(bg, tf_model, 0) must be called on the boltzmann generator.
-        # As we consider this error prone, the following info printing is used:
-        w_add = w - self.__class__.w_last
-        print(f"ML loss weight info: last: {self.__class__.w_last} added: {w_add} new: {w}")
-        self.__class__.w_last = w
-
-        if w_add:
-            for layer in bg.layers:
-                if hasattr(layer, 'log_det_Jxz'):
-                    tf_model.add_loss((-1) * layer.log_det_Jxz * w_add)
-        # Do not sum over batch and do not use any other loss reduction
-        super().__init__(reduction=tf.keras.losses.Reduction.NONE, name="ML_loss")
-
-    def call(self, z_true, z_pred):
-        """ Returns the (0.5/std**2)*(F(x)**2) part of the ML loss """
-        return (0.5 / (self.std**2)) * tf.reduce_sum(z_pred**2, axis=1)
-
-
-class LossKL(tf.keras.losses.Loss):
-    """ The Kullback–Leibler (KL) divergence loss """
-    # Last weight of ML loss
-    w_last = 0
-
-    def __init__(self, bg, tf_model, w, energy_function, high_energy, max_energy, temperature=1.0):
-        """ Sets log(det J) part of the KL loss to be used with weight 'w' in
-        tensorflow model 'tf_model' of the BG 'bg'.
-
-        IMPORTANT NOTE: LossKL(bg, tf_model, 0, None, None, None) has to be called if KL loss
-        should no longer be used and it has been used before. Otherwise the -log(det J)
-        part of the KL loss would be still applied in the tf_model.
+        Arguments:
+            weight (float):
+                Weight with which the loss should be used. Output of
+                __call__ method is multiplied by this factor.
+            prior_sigma (float):
+                Standard deviation of the isotropic normal prior distribution.
         """
+        self.prior_sigma = prior_sigma
+        self.weight = weight
+
+    def __call__(self, args) -> tf.Tensor:
+        """ Returns array of shape (batch_size,) with calculated values
+        of loss for each configuration """
+        z_predicted, log_det_jacobian_predicted = args[0], args[1]
+
+        z_energy = (0.5 / (self.prior_sigma**2)) * tf.reduce_sum(z_predicted**2, axis=1)
+        return (z_energy - log_det_jacobian_predicted) * self.weight
+
+
+class LossKL:
+    """ The Kullback–Leibler (KL) divergence loss
+    Defined as: u(Fzx(z)) - log(det(Jzx))  where u(x) is dimensionless energy U(x)/kT """
+
+    def __init__(self, weight, energy_function, high_energy, max_energy, temperature=1.0):
+        """
+        Arguments:
+            energy_function (function):
+                Function used to calculate energy of batch of x configurations.
+            high_energy (float):
+                E_high (start of logarithm) used in linlogcut to prevent overflows.
+            max_energy (float):
+                E_max (maximal value) used in linlogcut to prevent overflows.
+            temperature (float):
+                Physical temperature (kT) of the system in the same units
+                as used by energy_function.
+        """
+        self.weight = weight
         self.energy_function = energy_function
         self.high_energy = high_energy
         self.max_energy = max_energy
         self.temperature = temperature  # kT
 
-        from util import linlogcut
-        self.linlogcut_function = linlogcut
+        self.linlogcut_function = util.linlogcut
 
-        # See LossMLNormal for more info
-        w_add = w - self.__class__.w_last
-        print(f"KL loss weight info: last: {self.__class__.w_last} added: {w_add} new: {w}")
-        self.__class__.w_last = w
+    def __call__(self, args) -> tf.Tensor:
+        """ Returns array of shape (batch_size,) with calculated values
+        of loss for each configuration """
+        x_predicted, log_det_jacobian_predicted = args[0], args[1]
 
-        if w_add:
-            for layer in bg.layers:
-                if hasattr(layer, 'log_det_Jzx'):
-                    tf_model.add_loss((-1) * layer.log_det_Jzx * w_add)
-        # Do not sum over batch and do not use any other loss reduction
-        super().__init__(reduction=tf.keras.losses.Reduction.NONE, name="KL_loss")
-
-    def call(self, x_true, x_pred):
-        """ Returns u(F(z)) part of the KL loss """
         # Compute dimensionless energy
-        energy = self.energy_function(x_pred) / self.temperature
-        # Apply linlogcut
+        energy = self.energy_function(x_predicted) / self.temperature
+        # Apply linlogcut to prevent overflows
         safe_energy = self.linlogcut_function(energy, self.high_energy, self.max_energy)
-        return safe_energy
+        return (safe_energy - log_det_jacobian_predicted) * self.weight
+
+
+class LossRCEntropy:
+    """ Reaction-coordinate (RC) entropy loss
+    Defined as: -entropy  where entropy is differential entropy of RC prob. distribution """
+
+    def __init__(self, weight, rc_function, rc_min, rc_max):
+        """
+        Arguments:
+            rc_function (function):
+                Function that takes batch as an input and returns 1D array of
+                RC (reaction coordinate) values (i.e. RC per sample).
+            rc_min (float):
+                Minimal value of the RC.
+                Note: Do not use too low (high) values of rc_min (rc_max) for good
+                functionality of RC-entropy loss in training.
+            rc_max (float):
+                Maximal value of the RC.
+        """
+        self.weight = weight
+        self.rc_function = rc_function
+        self.gauss_means = np.linspace(rc_min, rc_max, 11)
+        self.gauss_sigma = (rc_max - rc_min) / 11.0
+
+    def __call__(self, x_predicted) -> tf.Tensor:
+        """ Returns array of shape (batch_size,) with calculated values
+        of loss for each configuration """
+        batch_size = tf.shape(x_predicted)[0]
+        # Evaluate RC on batch
+        rc = self.rc_function(x_predicted)
+        # Change shape from (batch_size,) -> (batch_size, 1)
+        rc = tf.expand_dims(rc, axis=1)
+        # Create matrix of shape (batch_size, gauss_means), containing
+        # values of (not normalized) Gaussian kernel function evaluated at discrete
+        # points gauss_means (they can be thought of as means of Gauss functions).
+        kernel_matrix = tf.exp(-((rc - self.gauss_means) ** 2) / (2 * self.gauss_sigma**2))
+        # Add small number to prevent dividing by zero in the next step.
+        kernel_matrix += 1e-6
+        # Normalize each row of the matrix (i.e. each kernel).
+        kernel_matrix /= tf.reduce_sum(kernel_matrix, axis=1, keepdims=True)
+        # Create histogram which is an estimate of RC distribution probability
+        # density by calculating mean over kernels (= sum them end divide by their number).
+        histogram = tf.reduce_mean(kernel_matrix, axis=0)
+        # Calculate entropy of RC distribution
+        entropy = -tf.reduce_sum(histogram * tf.math.log(histogram))
+        # Ensure that returned tensor has shape (batch_size,)
+        return -entropy * self.weight * tf.ones(shape=(batch_size,), dtype=entropy.dtype)

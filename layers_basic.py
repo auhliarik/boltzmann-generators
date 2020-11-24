@@ -13,24 +13,22 @@ def nonlinear_transform(output_size, n_layers=3, n_hidden=100, activation='relu'
     functions. The last layer is always linear in order to access the full real
     number range and has output_size output neurons.
 
-    Parameters
-    ----------
-    output_size : int
-        number of output neurons
-    n_layers : int
-        number of layers, including the linear output layer. n_layers=3 means two
-        hidden layers with nonlinear activation and one linear output layer.
-    n_hidden : int
-        number of neurons in each hidden layer, either a number or an array of
-        length n_layers-1 to specify the width of each hidden layer
-    activation : str
-        nonlinear activation function in hidden layers
-    init_outputs : None or float or array
-        None means default initialization for the output layer, otherwise
-        it is initialized with 0
-    **args : kwargs
-        Additional keyword arguments passed to the layer
-
+    Arguments:
+        output_size (int):
+            Number of output neurons.
+        n_layers (int):
+            Number of layers, including the linear output layer. n_layers=3 means two
+            hidden layers with nonlinear activation and one linear output layer.
+        n_hidden (int):
+            Number of neurons in each hidden layer, either a number or an array of
+            length n_layers-1 to specify the width of each hidden layer.
+        activation (str):
+            Nonlinear activation function in hidden layers.
+        init_outputs (None or float or array):
+            None means default initialization for the output layer, otherwise
+            it is initialized with vector of given constants.
+        args (kwargs):
+            Additional keyword arguments passed to the layer.
     """
     if isinstance(n_hidden, numbers.Integral):
         n_hidden = n_hidden * np.ones(n_layers-1, dtype=int)
@@ -54,8 +52,8 @@ def nonlinear_transform(output_size, n_layers=3, n_hidden=100, activation='relu'
 
 
 class IndexLayer(tf.keras.layers.Layer):
+    """ Returns[:, indices] """
     def __init__(self, indices, **kwargs):
-        """ Returns [:, indices]."""
         self.indices = indices
         super().__init__(**kwargs)
 
