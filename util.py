@@ -23,7 +23,7 @@ def connect(input_layer, layers):
     return layer
 
 
-def linlogcut(x, a=100, b=1000):
+def linlogcut(x, a=1e6, b=1e10):
     """ Function which is linear until a, logarithmic until b and then constant, i.e.
         y = x               x <= a
         y = a + log(x-a+1)  a < x < b
@@ -31,7 +31,6 @@ def linlogcut(x, a=100, b=1000):
     """
     # Cutoff x after b, this should also cutoff infinities
     x = tf.where(x < b, x, b * tf.ones(tf.shape(x)))
-    return x
     # Logarithm after a
     y = a + tf.where(x < a, x - a, tf.math.log(x - a + 1))
     # Make sure everything is finite
