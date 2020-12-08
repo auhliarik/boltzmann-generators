@@ -3,19 +3,17 @@ import numpy as np
 
 
 def connect(input_layer, layers):
-    """ Connect the given sequence of layers and returns output layer
+    """ Connects the given sequence of layers and returns output layer
 
-    Parameters
-    ----------
-    input_layer : tf.keras layer
-        Input layer
-    layers : list of tf.keras layers
-        Layers to be connected sequentially
+    Arguments:
+        input_layer (tf.keras.layers.Layer):
+            Input layer.
+        layers (list of tf.keras.layer.Layer):
+            Layers to be connected sequentially.
 
-    Returns
-    -------
-    output_layer : tf.kears layer
-        Output Layer
+    Returns:
+        output_layer (tf.keras.layer.Layer):
+            Output Layer.
     """
     layer = input_layer
     for l in layers:
@@ -39,8 +37,9 @@ def linlogcut(x, a=1e6, b=1e10):
 
 
 def ensure_shape(X):
+    """ Returns input as a 2D array """
     if np.ndim(X) == 2:
-        return X
+        return X                # Return as is
     if np.ndim(X) == 1:
-        return np.array([X])
+        return np.array([X])    # Add 1 dimension
     raise ValueError('Incompatible array with shape: ', np.shape(X))
