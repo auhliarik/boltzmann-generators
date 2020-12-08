@@ -1,9 +1,10 @@
 # Ignoring some directories
 /archive/
 /deep_boltzmann/
-/original_code/
-/others/
 /model/
+/bg-env/
+/.idea/
+
 .ipynb_checkpoints
 __pycache__
 
