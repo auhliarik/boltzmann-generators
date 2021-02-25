@@ -224,13 +224,14 @@ class BoltzmannGenerator:
                 as well (both with shape (iterations, batch_size)).
 
         Returns:
-            loss_values (dict):
-                Dictionary, where keys are loss names and corresponding values are
-                np.ndarray-s with loss values in individual iteration.
-            energies_x_val (list):
-                2D list with energies of X-samples from validation set in all iterations.
-            energies_z_val (list):
-                The same as above for Z-samples.
+            tuple:
+                loss_values (dict):
+                    Dictionary, where keys are loss names and corresponding values are
+                    np.ndarray-s with loss values in individual iteration.
+                energies_x_val (list):
+                    2D list with energies of X-samples from validation set in all iterations.
+                energies_z_val (list):
+                    The same as above for Z-samples.
         """
 
         used_ML_loss = False
@@ -426,10 +427,11 @@ class BoltzmannGenerator:
                 of these configurations. Otherwise (which is default) return only the samples.
 
         Returns:
-            sample_z (np.ndarray):
-                Array of samples in z-space.
-            energy_z (np.ndarray):
-                Energies of z samples.
+            tuple:
+                sample_z (np.ndarray):
+                    Array of samples in z-space.
+                energy_z (np.ndarray):
+                    Energies of z samples.
         """
         # Random samples from N(mu, sigma^2) can be obtained from standard normal distribution
         # N(0,1) by sampling: mu + sigma * np.random.standard_normal(size=...)
@@ -453,16 +455,17 @@ class BoltzmannGenerator:
                 Number of samples to be returned.
 
         Returns:
-            sample_z (np.ndarray):
-                Samples in z-space.
-            sample_x (np.ndarray):
-                Samples in x-space obtained by mapping z samples.
-            energy_z (np.ndarray):
-                Energies of z samples in z space.
-            energy_x (np.ndarray):
-                Energies of x samples in x (real) space.
-            log_w (np.ndarray):
-                Logarithm of statistical weights of samples (see article).
+            tuple:
+                sample_z (np.ndarray):
+                    Samples in z-space.
+                sample_x (np.ndarray):
+                    Samples in x-space obtained by mapping z samples.
+                energy_z (np.ndarray):
+                    Energies of z samples in z space.
+                energy_x (np.ndarray):
+                    Energies of x samples in x (real) space.
+                log_w (np.ndarray):
+                    Logarithm of statistical weights of samples (see article).
         """
         # Get sample in Z space
         sample_z, energy_z = self.sample_z(
