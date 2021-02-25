@@ -43,3 +43,35 @@ def ensure_shape(X):
     if np.ndim(X) == 1:
         return np.array([X])    # Add 1 dimension
     raise ValueError('Incompatible array with shape: ', np.shape(X))
+
+
+def distance_matrix_squared(crd1, crd2, dim=2):
+    """ Returns the distance matrix or matrices between particles
+
+    Arguments:
+        crd1 (np.ndarray): 
+            First coordinate set - array or matrix.
+        crd2 (np.ndarray): 
+            Second coordinate set - array or matrix.
+        dim (int):
+            Dimension of particle system. 
+            If d=2, coordinate vectors are [x1, y1, x2, y2,...]
+    """
+    crd1 = ensure_shape(crd1)
+    crd2 = ensure_shape(crd2)
+    n_particles = int(np.shape(crd1)[1]/dim)
+
+    crd1_components = [
+        np.tile(np.expand_dims(crd1[:, i::dim], 2), (1, 1, n_particles))
+        for i in range(dim)
+    ]
+    crd2_components = [
+        np.tile(np.expand_dims(crd2[:, i::dim], 2), (1, 1, n_particles))
+        for i in range(dim)
+    ]
+    D2_components = [
+        (crd1_components[i] - np.transpose(crd2_components[i], axes=(0, 2, 1)))**2
+        for i in range(dim)
+    ]
+    D2 = np.sum(D2_components, axis=0)
+    return D2
