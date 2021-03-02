@@ -123,3 +123,23 @@ def free_energy_bootstrap(data, bins=100, bin_range=None, log_weights=None, bias
         free_energies -= B
 
     return bin_means, free_energies
+
+
+def bar(uba_sampled_in_a, uab_sampled_in_b):
+    """ Calculates ratio Qb/Qa of configurational partition functions
+    using Bennett acceptance ratio (BAR) method.
+
+    Arguments:
+        uba_sampled_in_a (np.ndarray):
+            Ub-Ua for samples in A.
+        uab_sampled_in_b (np.ndarray):
+            Ua-Ub for samples in B.
+    """
+    def metropolis_function(x):
+        return np.minimum(np.exp(-x), 1)
+
+    ratio = (
+        np.mean(metropolis_function(uba_sampled_in_a))
+        / np.mean(metropolis_function(uab_sampled_in_b))
+    )
+    return -np.log(ratio)
