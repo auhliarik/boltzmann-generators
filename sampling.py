@@ -241,8 +241,7 @@ class UmbrellaSampling:
                 k_umbrella
                 * (self.umbrellas[i+1].rc_trajectory - self.umbrellas[i+1].m_umbrella)**2
             )
-            # -log(Qb/Qa) = -log(Qb) + log(Qa) = Fb - Fa = delta_F
-            delta_F = -np.log(bar(ub_sampled_in_a - ua_sampled_in_a, ua_sampled_in_b - ub_sampled_in_b))
+            delta_F = bar(ub_sampled_in_a - ua_sampled_in_a, ua_sampled_in_b - ub_sampled_in_b)
             free_energies.append(free_energies[-1] + delta_F)
         return np.array(free_energies)
 

@@ -126,7 +126,7 @@ def free_energy_bootstrap(data, bins=100, bin_range=None, log_weights=None, bias
 
 
 def bar(uba_sampled_in_a, uab_sampled_in_b):
-    """ Calculates ratio Qb/Qa of configurational partition functions
+    """ Calculates ratio -log(Qb/Qa) = Fb - Fa of configurational partition functions
     using Bennett acceptance ratio (BAR) method.
 
     Arguments:
