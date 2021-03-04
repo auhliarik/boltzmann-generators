@@ -1,6 +1,8 @@
 import numpy as np
 import pyemma
+import scipy.optimize
 
+import util
 from analysis import bar
 
 
@@ -289,3 +291,63 @@ class UmbrellaSampling:
         F = -np.log(F)
 
         return x_grid_mean, F
+
+
+class HungarianMapper:
+    def __init__(self, x_ref, dim=2, identical_particles=None):
+        """ Permutes identical particles to minimize distance to reference structure.
+
+        For a given structure or set of structures finds the permutation of identical particles
+        that minimizes the mean square distance to a given reference structure. The optimization
+        is done by solving the linear sum assignment problem with the Hungarian algorithm.
+
+        Arguments:
+            x_ref (np.ndarray):
+                Reference structure.
+            dim (int):
+                Number of dimensions of particle system to define relation between vector position
+                and particle index. If dim=2, coordinate vectors are [x1, y1, x2, y2, ...].
+            identical_particles (np.ndarray or None):
+                Indices of particles subject to permutation. If None, all particles are used.
+        """
+        self.x_ref = x_ref
+        self.dim = dim
+        if identical_particles is None:
+            identical_particles = np.arange(x_ref.size)
+        self.identical_particles = identical_particles
+        # Get indices of coordinates of identical_particles in the configuration vector x.
+        self.ip_indices = np.concatenate([dim * self.identical_particles + i for i in range(dim)])
+        self.ip_indices.sort()
+
+    def map(self, x):
+        """ Maps x (configuration or trajectory) to reference structure
+        by permuting identical particles. """
+        x = util.ensure_shape(x)
+        y = x.copy()
+        cost_matrices = util.distance_matrix_squared(
+            np.tile(self.x_ref[:, self.ip_indices], (x.shape[0], 1)),
+            x[:, self.ip_indices]
+        )
+
+        for i in range(cost_matrices.shape[0]):  # i.e. for each configuration
+            _, col_assignment = scipy.optimize.linear_sum_assignment(cost_matrices[i])
+            assignment_components = [self.dim*col_assignment + i for i in range(self.dim)]
+            col_assignment = np.vstack(assignment_components).T.flatten()
+            y[i, self.ip_indices] = x[i, self.ip_indices[col_assignment]]
+        return y
+
+    def is_permuted(self, x):
+        """ Returns True for permuted configurations """
+        x = util.ensure_shape(x)
+        cost_matrices = util.distance_matrix_squared(
+            np.tile(self.x_ref[:, self.ip_indices], (x.shape[0], 1)),
+            x[:, self.ip_indices])
+        is_permuted = np.zeros(x.shape[0], dtype=bool)
+
+        for i in range(cost_matrices.shape[0]):  # i.e. for each configuration
+            _, col_assignment = scipy.optimize.linear_sum_assignment(cost_matrices[i])
+            assignment_components = [self.dim*col_assignment + i for i in range(self.dim)]
+            col_assignment = np.vstack(assignment_components).T.flatten()
+            if not np.all(col_assignment == np.arange(col_assignment.size)):
+                is_permuted[i] = True
+        return is_permuted
