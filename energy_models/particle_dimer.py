@@ -186,7 +186,7 @@ class ParticleDimer:
         D2rel = D2rel * mask_matrix
         # Calculate energy
         # Add factor 1/2 because we have double-counted each interaction
-        E = 0.5*self.params['eps']*tf.reduce_sum(D2rel**6, axis=(1, 2))
+        E = 0.5 * self.params['eps'] * tf.reduce_sum(D2rel**6, axis=(1, 2))
         return E
 
     def dimer_energy(self, x):
