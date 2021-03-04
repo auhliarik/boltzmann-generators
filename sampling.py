@@ -128,7 +128,8 @@ class UmbrellaModel:
     def __init__(self, energy_model, rc_function, k_umbrella, m_umbrella):
         """ Umbrella Energy Model
 
-        Wraps given energy model U(x) and returns energy E(x) = U(x) + k*(rc(x) - m)**2
+        Wraps given energy model U(x) and returns energy
+        E(x) = U(x) + 0.5*k_umbrella*(rc(x) - m)**2
 
         Arguments:
             energy_model :
@@ -149,7 +150,7 @@ class UmbrellaModel:
         self.rc_trajectory = None
 
     def bias_energy(self, rc):
-        return self.k_umbrella * (rc - self.m_umbrella)**2
+        return 0.5 * self.k_umbrella * (rc - self.m_umbrella)**2
 
     def energy(self, x):
         rc = self.rc_function(x)
@@ -158,7 +159,7 @@ class UmbrellaModel:
 
 class UmbrellaSampling:
     def __init__(self, energy_model, sampler, rc_function, x0,
-                 n_umbrella, k, m_min, m_max, forward_backward=True):
+                 n_umbrella, k_umbrella, m_min, m_max, forward_backward=True):
         """ Umbrella Sampling
 
         Arguments:
@@ -175,7 +176,7 @@ class UmbrellaSampling:
                 in the previous window.
             n_umbrella (int):
                 Number of umbrella windows (simulations) in forward run.
-            k (float):
+            k_umbrella (float):
                 Force constant for umbrella potential.
             m_min (float):
                 Mean value of reaction coordinate in the first window.
@@ -194,7 +195,7 @@ class UmbrellaSampling:
         m_umbrella = [m_min + i*diff for i in range(n_umbrella)]
         if forward_backward:
             m_umbrella += reversed(m_umbrella)
-        self.umbrellas = [UmbrellaModel(energy_model, rc_function, k, m) for m in m_umbrella]
+        self.umbrellas = [UmbrellaModel(energy_model, rc_function, k_umbrella, m) for m in m_umbrella]
 
     def run(self, n_steps=10000, verbose=True):
         x_start = self.x0
@@ -228,19 +229,19 @@ class UmbrellaSampling:
             # Free energy difference between two consecutive umbrellas
             # Ua calculated for samples from A
             ua_sampled_in_a = (
-                k_umbrella 
+                0.5 * k_umbrella
                 * (self.umbrellas[i].rc_trajectory - self.umbrellas[i].m_umbrella)**2
             )
             ub_sampled_in_a = (
-                k_umbrella
+                0.5 * k_umbrella
                 * (self.umbrellas[i].rc_trajectory - self.umbrellas[i+1].m_umbrella)**2
             )
             ua_sampled_in_b = (
-                k_umbrella
+                0.5 * k_umbrella
                 * (self.umbrellas[i+1].rc_trajectory - self.umbrellas[i].m_umbrella)**2
             )
             ub_sampled_in_b = (
-                k_umbrella
+                0.5 * k_umbrella
                 * (self.umbrellas[i+1].rc_trajectory - self.umbrellas[i+1].m_umbrella)**2
             )
             delta_F = bar(ub_sampled_in_a - ua_sampled_in_a, ua_sampled_in_b - ub_sampled_in_b)
@@ -276,7 +277,7 @@ class UmbrellaSampling:
         # Assign number of bin in x_grid for RC values.
         digitized_categories = [np.digitize(rc_trajectory, x_grid) for rc_trajectory in self.rc_trajectories]
         umbrella_centers = [u.m_umbrella for u in self.umbrellas]
-        umbrella_force_constants = [2.0*u.k_umbrella for u in self.umbrellas]
+        umbrella_force_constants = [u.k_umbrella for u in self.umbrellas]
 
         mbar_obj = pyemma.thermo.estimate_umbrella_sampling(
             rc_trajectories, digitized_categories,
