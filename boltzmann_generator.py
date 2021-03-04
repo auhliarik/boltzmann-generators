@@ -380,10 +380,10 @@ class BoltzmannGenerator:
 
                 # Return energies of output x and z configurations from validation batch
                 if return_validation_energies:
-                    if z_val_batch:
+                    if z_val_batch is not None:
                         x_out = self.Fzx(z_val_batch)
                         energies_x_val.append(self.energy_model.energy(x_out))
-                    if x_val_batch:
+                    if x_val_batch is not None:
                         z_out = self.Fxz(x_val_batch)
                         energies_z_val.append(self.energy_z(z_out))
 
