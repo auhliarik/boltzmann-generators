@@ -71,7 +71,8 @@ def free_energy_bootstrap(data, bins=100, bin_range=None, log_weights=None, bias
         bias (function):
             If not None, the given bias will be removed.
         align_bins (None or indices):
-            If not None, will shift samples to align at the given bins indices.
+            If not None, will subtract mean value of free energy at given bin indices
+            from the free energy profile.
 
     Returns:
         bin_means (array):
