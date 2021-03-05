@@ -175,8 +175,8 @@ class BoltzmannGenerator:
         Arguments:
             x (np.ndarray):
                 Training set - 2D numpy array of shape (training_set_size, bg.dim).
-            x_val (np.ndarray):
-                Validation dataset. Validation is enabled if it's not None.
+            x_val (np.ndarray od None):
+                Validation dataset. If None, validation is disabled.
             batch_size (int):
                 Size of the batch to be used while training.
             iterations (int):
@@ -185,6 +185,7 @@ class BoltzmannGenerator:
                 (i.e. params update) using single batch.
             lr (float):
                 Learning rate used by optimizer in training.
+                Not used if instance of optimizer is given in 'optimizer'.
             weight_ML (float):
                 Weight of the ML (maximum-likelihood) loss - training by example.
             weight_KL (float):
@@ -194,12 +195,15 @@ class BoltzmannGenerator:
             print_training_info_interval (int):
                 If in verbose mode, training info is printed every (this param)-th iteration.
             print_total_loss_only (bool):
-                If true, losses are summed in the info print. Otherwise their individual
-                values are printed.
-            optimizer (tf.keras.optimizers.Optimizer):
-                Optimizer to be used in training. Defaults to newly created Adam optimizer.
-            clipnorm (float):
+                If true, losses are summed in the info print.
+                Otherwise their individual values are printed.
+            optimizer (str or tf.keras.optimizers.Optimizer or None):
+                Optimizer to be used in training. By default uses the same optimizer instance
+                as the last time / creates new instance of Adam optimizer if running for
+                the first time. If set to 'reset', newly created Adam optimizer is used.
+            clipnorm (float or None):
                 Clip norm (clipping of gradient by norm) used by optimizer.
+                Not used if instance of optimizer is given in 'optimizer'.
             high_energy (float):
                 E_high (start of logarithm) used by linlogcut when training by energy.
             max_energy (float):
@@ -210,7 +214,7 @@ class BoltzmannGenerator:
                 energy_model.energy and energy_model.energy_tf methods.
             weight_RCEnt (float):
                 Weight of the RC-entropy loss.
-            rc_function (function):
+            rc_function (function or None):
                 Function that takes batch as an input and returns 1D array of
                 RC (reaction coordinate) values (i.e. RC per sample).
             rc_min (float):
@@ -227,9 +231,10 @@ class BoltzmannGenerator:
             tuple:
                 loss_values (dict):
                     Dictionary, where keys are loss names and corresponding values are
-                    np.ndarray-s with loss values in individual iteration.
+                    np.ndarray-s with loss values in individual iterations.
                 energies_x_val (list):
                     2D list with energies of X-samples from validation set in all iterations.
+                    Batch size for validation is the same as for training.
                 energies_z_val (list):
                     The same as above for Z-samples.
         """
@@ -496,7 +501,7 @@ def create_layers_for_boltzmann_generator(
         layer_types:
             String describing the sequence of layers. Usage:
                 R RealNVP layer
-                r RealNVP layer, share parameters with last layer
+                r RealNVP layer that shares parameters with the previous layer
             For example: "RRR".
             Splitting and merging layers will be added automatically.
         channels:

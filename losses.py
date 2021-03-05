@@ -105,6 +105,7 @@ class LossRCEntropy:
         kernel_matrix /= tf.reduce_sum(kernel_matrix, axis=1, keepdims=True)
         # Create histogram which is an estimate of RC distribution probability
         # density by calculating mean over kernels (= sum them end divide by their number).
+        # Note that this histogram is normalized (sum of bins is 1).
         histogram = tf.reduce_mean(kernel_matrix, axis=0)
         # Calculate entropy of RC distribution
         entropy = -tf.reduce_sum(histogram * tf.math.log(histogram))
