@@ -412,7 +412,7 @@ class BoltzmannGenerator:
                     for type_of_loss in loss_values:
                         if print_total_loss_only and type_of_loss not in ("loss", "val_loss"):
                             continue
-                        info_str += f"{type_of_loss}: {loss_values[type_of_loss][i]:.4f} "
+                        info_str += f"{type_of_loss}: {loss_values[type_of_loss][i]:.2f} "
 
                     print(info_str)
                     sys.stdout.flush()
