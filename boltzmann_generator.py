@@ -58,6 +58,8 @@ class BoltzmannGenerator:
         self.energy_model = energy_model
         # Create models from individual transformations
         self.connect_layers()
+        # Other attributes
+        self.optimizer = None
 
     def connect_xz(self, x):
         z = None
@@ -308,8 +310,18 @@ class BoltzmannGenerator:
             losses_for_metrics.append((rc_loss, "RC_loss"))
 
         # Build optimizer
-        if optimizer is None:
+        if optimizer is None and self.optimizer:
+            optimizer = self.optimizer
+            optimizer.lr.assign(lr)
+            optimizer.clipnorm = clipnorm
+        elif optimizer is None or optimizer == "reset":
             optimizer = tf.keras.optimizers.Adam(lr=lr, clipnorm=clipnorm)
+        elif isinstance(optimizer, str):
+            raise Exception(
+                "Parameter 'optimizer' can be only one of "
+                "None, 'reset' or optimizer instance."
+            )
+        self.optimizer = optimizer
 
         # Construct model
         dual_model = tf.keras.models.Model(inputs=inputs, outputs=outputs, name="dual_model")
