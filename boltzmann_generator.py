@@ -496,6 +496,26 @@ class BoltzmannGenerator:
 
         return sample_z, sample_x, energy_z, energy_x, log_weights
 
+    def save(self, dir_and_prefix):
+        """ Saves model weights and optimizer state """
+        # It is enough to save just one model model with jacobian, as all
+        # four models (Fxz, Fzx, FxzJ, FzxJ) share their weights.
+        if not self.optimizer:
+            print("BG does not have optimizer (probably it has been not trained yet)."
+                  "Saving default optimizer.")
+            self.optimizer = tf.keras.optimizers.Adam()
+        checkpoint = tf.train.Checkpoint(model=self.FzxJ, optimizer=self.optimizer)
+        checkpoint.save(dir_and_prefix)
+
+    def load(self, dir_and_prefix):
+        """ Loads model weights and optimizer state.
+        Make sure that you are loading data into BG with the same parameters. """
+        if not self.optimizer:
+            self.optimizer = tf.keras.optimizers.Adam()
+        checkpoint = tf.train.Checkpoint(model=self.FzxJ, optimizer=self.optimizer)
+        load_status = checkpoint.restore(dir_and_prefix)
+        load_status.assert_consumed()
+
 
 def create_layers_for_boltzmann_generator(
         dim, layer_types,
