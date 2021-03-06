@@ -509,9 +509,20 @@ class BoltzmannGenerator:
 
     def load(self, dir_and_prefix, load_latest_checkpoint=False):
         """ Loads model weights and optimizer state.
-        Make sure that you are loading data into BG with the same parameters. """
+        Make sure that you are loading data into BG with the same parameters.
+
+        Arguments:
+            dir_and_prefix (str):
+               Path to the directory + prefix of checkpoint to be loaded
+               (including "-{id}" i.e. for instance "resources/bg_model-1").
+            load_latest_checkpoint (bool):
+                If true, only name of the directory should be passed to first argument
+                and latest checkpoint is found and loaded.
+        """
         if load_latest_checkpoint:
             dir_and_prefix = tf.train.latest_checkpoint(dir_and_prefix)
+            if not dir_and_prefix:
+                raise Exception(f"Could not find any TF checkpoint in directory '{dir_and_prefix}'")
         if not self.optimizer:
             self.optimizer = tf.keras.optimizers.Adam()
         checkpoint = tf.train.Checkpoint(model=self.FzxJ, optimizer=self.optimizer)
