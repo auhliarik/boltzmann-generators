@@ -507,14 +507,16 @@ class BoltzmannGenerator:
         checkpoint = tf.train.Checkpoint(model=self.FzxJ, optimizer=self.optimizer)
         checkpoint.save(dir_and_prefix)
 
-    def load(self, dir_and_prefix):
+    def load(self, dir_and_prefix, load_latest_checkpoint=False):
         """ Loads model weights and optimizer state.
         Make sure that you are loading data into BG with the same parameters. """
+        if load_latest_checkpoint:
+            dir_and_prefix = tf.train.latest_checkpoint(dir_and_prefix)
         if not self.optimizer:
             self.optimizer = tf.keras.optimizers.Adam()
         checkpoint = tf.train.Checkpoint(model=self.FzxJ, optimizer=self.optimizer)
         load_status = checkpoint.restore(dir_and_prefix)
-        load_status.assert_consumed()
+        load_status.assert_existing_objects_matched()
 
 
 def create_layers_for_boltzmann_generator(
