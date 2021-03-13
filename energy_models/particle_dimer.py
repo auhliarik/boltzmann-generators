@@ -9,7 +9,7 @@ class ParticleDimer:
         'n_solvent': 36,
         'eps':  1.0,            # LJ prefactor
         'rm': 1.1,              # LJ particle size
-        'dimer_slope': -0.5,    # dimer slope parameter
+        'dimer_slope': 2,       # dimer slope parameter
         'dimer_a': 25.0,        # dimer x2 parameter
         'dimer_b': 10.0,        # dimer x4 parameter
         'dimer_dmid': 1.5,      # dimer transition state distance
