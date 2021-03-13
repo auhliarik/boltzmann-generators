@@ -248,7 +248,7 @@ class UmbrellaSampling:
             free_energies.append(free_energies[-1] + delta_F)
         return np.array(free_energies)
 
-    def mbar(self, rc_min=None, rc_max=None, rc_bins=50):
+    def mbar(self, rc_min=None, rc_max=None, rc_bins=50, max_error=1e-3):
         """ Estimates free energy along reaction coordinate with MBAR.
 
         Arguments:
@@ -257,7 +257,10 @@ class UmbrellaSampling:
             rc_max (float or None):
                 Maximum bin position. If None, the maximum RC value will be used.
             rc_bins (int):
-                Number of bins
+                Number of bins.
+            max_error (float):
+                Convergence criterion - maximal change of free energy between
+                consecutive iterations in self-consistent free energy calculation.
 
         Returns:
             tuple:
@@ -282,7 +285,8 @@ class UmbrellaSampling:
         mbar_obj = pyemma.thermo.estimate_umbrella_sampling(
             rc_trajectories, digitized_categories,
             umbrella_centers, umbrella_force_constants,
-            estimator='mbar')
+            maxerr=max_error, estimator='mbar'
+        )
 
         x_grid_mean = np.concatenate([x_grid, [2*x_grid[-1] - x_grid[-2]]])
         x_grid_mean -= 0.5*(x_grid[1]-x_grid[0])
