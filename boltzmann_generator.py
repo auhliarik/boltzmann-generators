@@ -158,7 +158,7 @@ class BoltzmannGenerator:
     def transform_zx_with_jacobian(self, z):
         """ Maps batch in Z by Fzx and returns batch in X as well as log(det(Jzx)) """
         z = util.ensure_shape(z)
-        if self.FxzJ is None:
+        if self.FzxJ is None:
             return self.Fzx.predict(z), np.zeros(z.shape[0])
         else:
             x, log_jacobian = self.FzxJ.predict(z)
