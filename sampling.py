@@ -129,7 +129,7 @@ class UmbrellaModel:
         """ Umbrella Energy Model
 
         Wraps given energy model U(x) and returns energy
-        E(x) = U(x) + 0.5*k_umbrella*(rc(x) - m)**2
+        E(x) = U(x) + 0.5*k_umbrella*(rc(x) - m_umbrella)**2
 
         Arguments:
             energy_model :
