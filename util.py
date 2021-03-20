@@ -21,28 +21,28 @@ def connect(input_layer, layers):
     return layer
 
 
-def linlogcut(x, a=1e6, b=1e10):
+def linlogcut(x, a=1e6, b=1e10) -> tf.Tensor:
     """ Function which is linear until a, logarithmic until b and then constant, i.e.
         y = x               x <= a
         y = a + log(x-a+1)  a < x < b
         y = b               b < x
     """
-    # Cutoff x after b, this should also cutoff infinities
+    # Cutoff x after b, this should also cutoff infinities.
     x = tf.where(x < b, x, b * tf.ones(tf.shape(x)))
-    # Logarithm after a
+    # Logarithm after a.
     y = a + tf.where(x < a, x - a, tf.math.log(x - a + 1))
-    # Make sure everything is finite
+    # Make sure everything is finite.
     y = tf.where(tf.math.is_finite(y), y, b * tf.ones(tf.shape(y)))
     return y
 
 
-def ensure_shape(X):
+def ensure_shape(x):
     """ Returns input as a 2D array """
-    if np.ndim(X) == 2:
-        return X                # Return as is
-    if np.ndim(X) == 1:
-        return np.array([X])    # Add 1 dimension
-    raise ValueError('Incompatible array with shape: ', np.shape(X))
+    if np.ndim(x) == 2:
+        return x                # Return as is.
+    if np.ndim(x) == 1:
+        return np.array([x])    # Add 1 dimension.
+    raise ValueError('Incompatible array with shape: ', np.shape(x))
 
 
 def distance_matrix_squared(crd1, crd2, dim=2):
