@@ -12,7 +12,7 @@ class LennardJonesCluster:
         'n_particles': 7,
         'epsilon': 10.0,        # LJ energy factor
         'sigma': 1,             # LJ particle size
-        'origin_k': 15.0,       # force constant of CoM binding to origin
+        'k_origin': 15.0,       # force constant of CoM binding to origin
     }
 
     def __init__(self, params: dict = None):
@@ -170,8 +170,8 @@ class LennardJonesCluster:
 
     def origin_constraint_energy(self, x: np.ndarray) -> np.ndarray:
         """ Calculates energy of potential, that attracts center of mass to origin """
-        energy_x = 0.5 * self.params["origin_k"] * np.mean(x[:, 0::2])**2
-        energy_y = 0.5 * self.params["origin_k"] * np.mean(x[:, 1::2])**2
+        energy_x = 0.5 * self.params["k_origin"] * np.mean(x[:, 0::2])**2
+        energy_y = 0.5 * self.params["k_origin"] * np.mean(x[:, 1::2])**2
         return energy_x + energy_y
 
     def energy(self, x: np.ndarray) -> np.ndarray:
@@ -215,8 +215,8 @@ class LennardJonesCluster:
 
     def origin_constraint_energy_tf(self, x: tf.Tensor) -> tf.Tensor:
         """ Calculates energy of potential, that attracts center of mass to origin """
-        energy_x = 0.5 * self.params["origin_k"] * tf.reduce_mean(x[:, 0::2], axis=1)**2
-        energy_y = 0.5 * self.params["origin_k"] * tf.reduce_mean(x[:, 1::2], axis=1)**2
+        energy_x = 0.5 * self.params["k_origin"] * tf.reduce_mean(x[:, 0::2], axis=1)**2
+        energy_y = 0.5 * self.params["k_origin"] * tf.reduce_mean(x[:, 1::2], axis=1)**2
         return energy_x + energy_y
 
     def energy_tf(self, x: tf.Tensor) -> tf.Tensor:
