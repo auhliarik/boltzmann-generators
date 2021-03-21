@@ -496,7 +496,7 @@ class BoltzmannGenerator:
 
         return sample_z, sample_x, energy_z, energy_x, log_weights
 
-    def save(self, dir_and_prefix):
+    def save(self, dir_and_prefix: str):
         """ Saves model weights and optimizer state """
         # It is enough to save just one model model with jacobian, as all
         # four models (Fxz, Fzx, FxzJ, FzxJ) share their weights.
