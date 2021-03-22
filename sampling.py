@@ -318,15 +318,15 @@ class HungarianMapper:
         self.x_ref = x_ref
         self.dim = dim
         if identical_particles is None:
-            identical_particles = np.arange(x_ref.size)
+            identical_particles = np.arange(x_ref.size // self.dim)
         self.identical_particles = identical_particles
         # Get indices of coordinates of identical_particles in the configuration vector x.
         self.ip_indices = np.concatenate([dim * self.identical_particles + i for i in range(dim)])
         self.ip_indices.sort()
 
     def map(self, x):
-        """ Maps x (configuration or trajectory) to reference structure
-        by permuting identical particles. """
+        """ Maps x (configuration or trajectory) closer to
+        the reference structure by permuting identical particles. """
         x = util.ensure_shape(x)
         y = x.copy()
         cost_matrices = util.distance_matrix_squared(
