@@ -66,20 +66,26 @@ class LennardJonesCluster:
                 Initial configuration.
             new_labels (list):
                 List of integers with new labels for the particles, which are numbered 1,...,N.
-                For example for 3 particles [2, 1, 3] means that particles 1 and 2 will have their
-                labels swapped in the new configuration.
+                For example for 3 particles [2, 3, 1] means that particles which had labels
+                1, 2, 3 will be now labeled 2, 3, 1 respectively.
         Returns:
             np.ndarray:
                 New configuration with labels permuted.
         """
         n_particles = self.params["n_particles"]
+        if set(new_labels) != set(range(1, n_particles + 1)):
+            raise RuntimeError(
+                "Argument 'new_labels' must contain list of ALL particles "
+                "and each label must be present exactly once."
+            )
+
         x_original = x.reshape((n_particles, 2))
         x_new = np.ones_like(x_original)
 
         for i, label in enumerate(new_labels):
             # Labels start from 1, not 0.
             label -= 1
-            x_new[i] = x_original[label]
+            x_new[label] = x_original[i]
 
         return x_new.reshape((1, 2*n_particles))
 
