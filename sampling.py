@@ -223,6 +223,10 @@ class UmbrellaSampling:
         return np.array([u.m_umbrella for u in self.umbrellas])
 
     def umbrella_free_energies(self):
+        """ Returns the reduces free energy profile A(r)/kT
+
+        Uses the Bennett acceptance ratio (BAR) between each two consecutive windows.
+        """
         free_energies = [0]
         for i in range(len(self.umbrellas) - 1):
             k_umbrella = self.umbrellas[i].k_umbrella
@@ -267,7 +271,7 @@ class UmbrellaSampling:
                 bins (np.ndarray):
                     Bin positions (their centers).
                 free_energy (np.ndarray):
-                    Free energy, i.e. -log(p), for all bins.
+                    Free energy, A(r)/kT = -log(p), for all bins.
         """
         if rc_min is None:
             rc_min = np.concatenate(self.rc_trajectories).min(initial=0)

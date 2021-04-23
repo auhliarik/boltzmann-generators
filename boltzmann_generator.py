@@ -473,7 +473,7 @@ class BoltzmannGenerator:
                 energy_z (np.ndarray):
                     Energies of z samples in z space.
                 energy_x (np.ndarray):
-                    Energies of x samples in x (real) space.
+                    Reduced energies of x samples in x (real) space.
                 log_w (np.ndarray):
                     Logarithm of statistical weights of samples (see article).
         """

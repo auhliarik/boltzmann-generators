@@ -78,7 +78,8 @@ def free_energy_bootstrap(data, bins=100, bin_range=None, log_weights=None, bias
         bin_means (array):
             Array of shape (bins,), mean positions of bins.
         free_energies (array):
-            Array of shape (samples, bins), for each bootstrap the free energy of the bins.
+            Array of shape (samples, bins), for each bootstrap
+            the free energy A(r)/kT of the bins.
     """
     if bin_range is None:
         bin_range = (np.min(data), np.max(data))
