@@ -25,12 +25,19 @@ class BoltzmannGenerator:
             energy_model:
                 Instance of a class having:
                 - attribute 'dim' (physical dimension of the system to be sampled by BG)
-                - method 'energy' (calculates per sample energy on batch, returns np.ndarray)
+                - method 'energy' (calculates per sample *reduced* energy on batch
+                       and returns np.ndarray)
                 - method 'energy_tf' (same as above, returns tf.Tensor)
+                NOTE: When referring to 'energy' in this module, we always mean the reduced energy.
+            **args_for_layers:
+                Additional arguments for layers of deep NN, see documentation of
+                create_layers_for_boltzmann_generator.
         """
         for attribute in ("dim", "energy", "energy_tf"):
             if not hasattr(energy_model, attribute):
-                raise AttributeError(f"Provided energy does not have attribute '{attribute}'")
+                raise AttributeError(
+                    f"Provided energy model does not have attribute '{attribute}'"
+                )
 
         self.dim = energy_model.dim
 
@@ -169,7 +176,6 @@ class BoltzmannGenerator:
               verbose=True, print_training_info_interval=10, print_total_loss_only=False,
               optimizer=None, clipnorm=None,
               high_energy=1e6, max_energy=1e10,
-              temperature=1.0,
               weight_RCEnt=0.0, rc_function=None, rc_min=0.0, rc_max=1.0,
               return_validation_energies=False):
         """ Train the Boltzmann generator (i.e. its X <-> Z transformations).
@@ -210,10 +216,6 @@ class BoltzmannGenerator:
                 E_high (start of logarithm) used by linlogcut when training by energy.
             max_energy (float):
                 E_max (energy cutoff) used by linlogcut when training by energy.
-            temperature (float):
-                kT - real temperature (NOT relative, which is used in other methods) of the
-                physical systems. Has to be in the same unit of energy as used by
-                energy_model.energy and energy_model.energy_tf methods.
             weight_RCEnt (float):
                 Weight of the RC-entropy loss.
             rc_function (function or None):
@@ -288,7 +290,7 @@ class BoltzmannGenerator:
             y.append(np.zeros(batch_size))
 
             instance_of_kl_loss_class = losses.LossKL(
-                weight_KL, self.energy_model.energy_tf, high_energy, max_energy, temperature
+                weight_KL, self.energy_model.energy_tf, high_energy, max_energy
             )
             kl_loss = tf.keras.layers.Lambda(instance_of_kl_loss_class, name="KL_loss_layer")(
                 [self.output_x, self.log_det_zx]
@@ -422,21 +424,16 @@ class BoltzmannGenerator:
         else:
             return loss_values
 
-    def energy_z(self, z, relative_temperature=1.0):
+    @staticmethod
+    def energy_z(z):
         """ Returns energies of given z-configurations """
-        energies = (
-            self.dim * np.log(np.sqrt(relative_temperature))
-            + np.sum(z ** 2 / (2 * relative_temperature), axis=1)
-        )
+        energies = np.sum(z**2 / 2, axis=1)
         return energies
 
-    def sample_z(self, n_sample, relative_temperature=1.0, return_energies=False):
+    def sample_z(self, n_sample, return_energies=False):
         """ Samples from prior distribution in Z.
 
         Arguments:
-            relative_temperature (float):
-                Relative temperature (tau in the article). Equal to the
-                variance of the isotropic Gaussian sampled in z-space.
             n_sample (int):
                 Number of samples to be returned.
             return_energies (bool):
@@ -450,9 +447,8 @@ class BoltzmannGenerator:
                 energy_z (np.ndarray):
                     Energies of z samples.
         """
-        # Random samples from N(mu, sigma^2) can be obtained from standard normal distribution
-        # N(0,1) by sampling: mu + sigma * np.random.standard_normal(size=...)
-        sample_z = np.sqrt(relative_temperature) * np.random.standard_normal(size=(n_sample, self.dim))
+        # Sample the latent vectors from N(0,1).
+        sample_z = np.random.standard_normal(size=(n_sample, self.dim))
 
         if return_energies:
             energies = self.energy_z(sample_z)
@@ -460,14 +456,11 @@ class BoltzmannGenerator:
         else:
             return sample_z
 
-    def sample(self, n_sample, relative_temperature=1.0):
+    def sample(self, n_sample):
         """ Samples from prior distribution in Z and returns them together with
         transformed X configurations and other relevant quantities.
 
         Arguments:
-            relative_temperature (float):
-                Relative relative_temperature (tau in the article). Equal to the variance of
-                the isotropic Gaussian sampled in z-space. Defaults to 1.
             n_sample (int):
                 Number of samples to be returned.
 
@@ -486,12 +479,12 @@ class BoltzmannGenerator:
         """
         # Get sample in Z space
         sample_z, energy_z = self.sample_z(
-            n_sample=n_sample, relative_temperature=relative_temperature, return_energies=True
+            n_sample=n_sample, return_energies=True
         )
         # Transform this sample to X sample (together with jacobian of transformation)
         sample_x, log_jacobian_of_transform_zx = self.transform_zx_with_jacobian(sample_z)
 
-        energy_x = self.energy_model.energy(sample_x) / relative_temperature
+        energy_x = self.energy_model.energy(sample_x)
         log_weights = -energy_x + energy_z + log_jacobian_of_transform_zx
 
         return sample_z, sample_x, energy_z, energy_x, log_weights

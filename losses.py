@@ -30,7 +30,7 @@ class LossMLNormal:
 
 class LossKL:
     """ The Kullback–Leibler (KL) divergence loss
-    Defined as: u(Fzx(z)) - log(det(Jzx))  where u(x) is dimensionless energy U(x)/kT """
+    Defined as: u(Fzx(z)) - log(det(Jzx))  where u(x) is the reduced energy U(x)/kT """
 
     def __init__(self, weight, energy_function, high_energy, max_energy, temperature=1.0):
         """
@@ -43,7 +43,9 @@ class LossKL:
                 E_max (maximal value) used in linlogcut to prevent overflows.
             temperature (float):
                 Physical temperature (kT) of the system in the same units
-                as used by energy_function.
+                as used by energy_function. Energy will be devided by this factor.
+                Defaults to 1.0, which means that 'energy_function' returns
+                the reduced energy.
         """
         self.weight = weight
         self.energy_function = energy_function
