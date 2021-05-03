@@ -90,7 +90,7 @@ class LennardJonesCluster:
         return x_new.reshape((1, 2*n_particles))
 
     def draw_config(
-            self, x, axis=None, box_size=8, fig_size=5,
+            self, x, axis=None, box_size=7, fig_size=5,
             with_numbers=False, particle_colors=None, alpha=0.7):
         """ Draw given cluster configuration
 
@@ -144,7 +144,7 @@ class LennardJonesCluster:
             )
             if with_numbers:
                 axis.text(
-                    *circle_position, i, fontsize=14,
+                    *circle_position, i, fontsize=16,
                     horizontalalignment='center', verticalalignment='center',
                 )
 
